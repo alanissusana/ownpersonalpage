@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Pendientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#A76FAD;
+    --teal:#5C8B96;
+    --indigo:#7364C5;
+    --pink:#DA4E88;
+    --aqua:#23F0DC;
+
+    --bg:#F5F5FA;
+    --card-bg:#FFFFFF;
+    --text:#2B2B36;
+    --muted:#767789;
+    --border:#E4E4EE;
+    --shadow: 0 1px 3px rgba(20,20,40,0.06), 0 1px 2px rgba(20,20,40,0.08);
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family:'Inter', system-ui, sans-serif;
+    min-height:100vh;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  header.top{
+    background: var(--card-bg);
+    border-bottom:1px solid var(--border);
+    padding:20px 24px 0;
+  }
+  .top-inner{ max-width:1180px; margin:0 auto; }
+  h1{
+    font-family:'Poppins', sans-serif;
+    font-size:1.5rem;
+    margin:0 0 2px;
+    font-weight:600;
+  }
+  .sub{ color: var(--muted); font-size:0.9rem; margin-bottom:16px; }
+
+  nav.tabs{ display:flex; gap:22px; }
+  .tab{
+    background:none;
+    border:none;
+    font-family:'Inter', sans-serif;
+    font-size:0.95rem;
+    font-weight:500;
+    color: var(--muted);
+    padding:10px 2px 12px;
+    border-bottom:3px solid transparent;
+    cursor:pointer;
+  }
+  .tab:hover{ color: var(--text); }
+  .tab.active{ color: var(--text); font-weight:600; }
+  .tab[data-panel="trabajo"].active{ border-bottom-color: var(--indigo); }
+  .tab[data-panel="personal"].active{ border-bottom-color: var(--teal); }
+  .tab[data-panel="links"].active{ border-bottom-color: var(--pink); }
+  .tab:focus-visible{ outline:2px solid var(--indigo); outline-offset:2px; }
+
+  main{ padding:24px; }
+  .panel-wrap{ max-width:1180px; margin:0 auto; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  .board-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:16px; gap:12px; flex-wrap:wrap;
+  }
+  .board-head h2{ font-family:'Poppins', sans-serif; font-size:1.15rem; margin:0; }
+
+  .btn{
+    font-family:'Inter', sans-serif; font-weight:600; font-size:0.87rem;
+    border:none; border-radius:8px; padding:9px 16px; cursor:pointer;
+  }
+  .btn-primary{ background: var(--indigo); color:#fff; }
+  .btn-primary:hover{ background:#6153b3; }
+  .btn-secondary{ background:#fff; color: var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover{ background:#F0F0F7; }
+  .btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--indigo); outline-offset:2px;
+  }
+
+  /* kanban */
+  .board{ display:grid; grid-template-columns: repeat(4, minmax(220px,1fr)); gap:14px; overflow-x:auto; }
+  .col{ background:#EFEFF6; border-radius:10px; padding:12px; min-height:200px; display:flex; flex-direction:column; gap:10px; }
+  .col.dragover{ outline:2px dashed var(--indigo); outline-offset:-4px; }
+  .col-label{ font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px; padding:2px 4px 6px; color: var(--text); }
+  .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .dot.pendiente{ background: var(--purple); }
+  .dot.progreso{ background: var(--indigo); }
+  .dot.bloqueado{ background: var(--pink); }
+  .dot.hecho{ background: var(--teal); }
+
+  .card{ background: var(--card-bg); border-radius:8px; padding:12px 12px 10px; box-shadow: var(--shadow); border-left:4px solid var(--purple); cursor:grab; }
+  .card[data-status="pendiente"]{ border-left-color: var(--purple); }
+  .card[data-status="progreso"]{ border-left-color: var(--indigo); }
+  .card[data-status="bloqueado"]{ border-left-color: var(--pink); }
+  .card[data-status="hecho"]{ border-left-color: var(--teal); }
+  .card.dragging{ opacity:0.4; }
+  .card-title{ font-weight:600; font-size:0.93rem; margin:0 0 4px; word-break:break-word; }
+  .card-note{ font-size:0.82rem; color: var(--muted); margin:0 0 8px; word-break:break-word; }
+  .card-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .card-due{ font-size:0.72rem; color: var(--muted); }
+  .mini-select{ font-size:0.74rem; border:1px solid var(--border); border-radius:6px; padding:3px 4px; background:#fff; color: var(--text); }
+  .icon-btn{ background:none; border:none; color:#B0B1C0; cursor:pointer; font-size:0.9rem; padding:2px 4px; line-height:1; }
+  .icon-btn:hover{ color: var(--pink); }
+  .empty{ font-size:0.82rem; color: var(--muted); text-align:center; padding:20px 6px; font-style:italic; }
+
+  /* modal */
+  .modal-overlay{ position:fixed; inset:0; background: rgba(30,30,45,0.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal-overlay.open{ display:flex; }
+  .modal{ background:#fff; border-radius:12px; padding:22px; width:100%; max-width:420px; box-shadow: 0 16px 40px rgba(0,0,0,0.25); }
+  .modal h3{ font-family:'Poppins', sans-serif; margin:0 0 14px; font-size:1.05rem; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:0.78rem; font-weight:600; color: var(--muted); margin-bottom:5px; }
+  .field input, .field textarea, .field select{ width:100%; font-family:'Inter', sans-serif; font-size:0.92rem; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:#fff; color: var(--text); }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+  .btn-ghost{ background:transparent; color: var(--muted); }
+  .btn-ghost:hover{ color: var(--text); }
+
+  /* links panel */
+  .link-form{ display:flex; flex-wrap:wrap; gap:10px; background:#fff; border:1px solid var(--border); padding:14px; border-radius:10px; margin-bottom:16px; }
+  .link-form input[type="url"], .link-form input[type="text"]{ flex:1 1 200px; padding:9px 10px; border-radius:8px; border:1px solid var(--border); font-family:'Inter', sans-serif; font-size:0.9rem; }
+  .tagpicker{ display:flex; flex-wrap:wrap; gap:6px; width:100%; align-items:center; }
+  .chip{ font-size:0.78rem; padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:#F5F5FA; color: var(--text); cursor:pointer; user-select:none; }
+  .chip.selected{ background: var(--indigo); color:#fff; border-color: var(--indigo); }
+  .chip.filter.active{ background: var(--pink); color:#fff; border-color: var(--pink); }
+  .row-between{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .filter-bar{ display:flex; flex-wrap:wrap; gap:6px; }
+  .links-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap:14px; }
+  .link-card{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:8px; position:relative; }
+  .link-card a{ color: var(--text); text-decoration:none; font-weight:600; font-size:0.93rem; display:flex; align-items:center; gap:8px; word-break:break-word; }
+  .link-card a:hover{ text-decoration:underline; }
+  .link-card img.favicon{ width:16px; height:16px; border-radius:3px; flex-shrink:0; }
+  .link-url{ font-size:0.7rem; color: var(--muted); word-break:break-all; }
+  .link-tags{ display:flex; flex-wrap:wrap; gap:5px; }
+  .link-tags .chip{ cursor:default; padding:3px 10px; font-size:0.68rem; }
+  .link-del{ position:absolute; top:10px; right:10px; }
+
+  /* tag manager modal */
+  .tag-manager-list{ display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; margin-bottom:12px; }
+  .tag-row{ display:flex; align-items:center; gap:8px; }
+  .tag-row input{ flex:1; padding:7px 9px; border-radius:6px; border:1px solid var(--border); font-size:0.88rem; }
+  .tag-row button{ background:none; border:none; color:#B0B1C0; cursor:pointer; font-size:0.95rem; }
+  .tag-row button:hover{ color: var(--pink); }
+  .add-tag-row{ display:flex; gap:8px; }
+  .add-tag-row input{ flex:1; padding:8px 10px; border-radius:6px; border:1px dashed var(--muted); font-size:0.88rem; }
+
+  footer.note{ text-align:center; font-size:0.75rem; color: var(--muted); padding:18px; }
+
+  @media (max-width: 720px){
+    .board{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <h1>Mis Pendientes</h1>
+    <div class="sub">Trabajo, personal y links, todo en un solo lugar.</div>
+    <nav class="tabs">
+      <button class="tab active" data-panel="trabajo">Trabajo</button>
+      <button class="tab" data-panel="personal">Personal</button>
+      <button class="tab" data-panel="links">Links</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="panel-wrap">
+
+    <!-- TRABAJO -->
+    <section class="panel active" id="panel-trabajo">
+      <div class="board-head">
+        <h2>Trabajo</h2>
+        <button class="btn btn-primary" onclick="openTaskModal('trabajo')">+ Nueva tarea</button>
+      </div>
+      <div class="board" id="board-trabajo"></div>
+    </section>
+
+    <!-- PERSONAL -->
+    <section class="panel" id="panel-personal">
+      <div class="board-head">
+        <h2>Personal</h2>
+        <button class="btn btn-primary" onclick="openTaskModal('personal')">+ Nueva tarea</button>
+      </div>
+      <div class="board" id="board-personal"></div>
+    </section>
+
+    <!-- LINKS -->
+    <section class="panel" id="panel-links">
+      <div class="row-between">
+        <h2 style="font-family:'Poppins',sans-serif; font-size:1.15rem; margin:0;">Links guardados</h2>
+        <button class="btn btn-secondary" onclick="openTagManager()">Editar etiquetas</button>
+      </div>
+
+      <form class="link-form" id="link-form">
+        <input type="url" id="link-url" placeholder="https://ejemplo.com" required>
+        <input type="text" id="link-title" placeholder="Título (opcional)">
+        <div class="tagpicker" id="link-tagpicker"></div>
+        <button class="btn btn-primary" type="submit" style="margin-left:auto;">Guardar link</button>
+      </form>
+
+      <div class="filter-bar" id="filter-bar"></div>
+      <br>
+      <div class="links-grid" id="links-grid"></div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="note">Datos guardados en tu base de datos — misma app, mismos datos, desde cualquier dispositivo.</footer>
+
+<!-- MODAL TAREA -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <h3 id="task-modal-title">Nueva tarea</h3>
+    <form id="task-form">
+      <div class="field">
+        <label for="task-title">Título</label>
+        <input type="text" id="task-title" required maxlength="80">
+      </div>
+      <div class="field">
+        <label for="task-note">Nota (opcional)</label>
+        <textarea id="task-note" maxlength="200"></textarea>
+      </div>
+      <div class="field">
+        <label for="task-due">Fecha límite (opcional)</label>
+        <input type="date" id="task-due">
+      </div>
+      <div class="field">
+        <label for="task-status">Estado</label>
+        <select id="task-status">
+          <option value="pendiente">Por hacer</option>
+          <option value="progreso">En progreso</option>
+          <option value="bloqueado">Bloqueado</option>
+          <option value="hecho">Hecho</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeTaskModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL EDITOR DE ETIQUETAS -->
+<div class="modal-overlay" id="tag-modal">
+  <div class="modal">
+    <h3>Editar etiquetas</h3>
+    <div class="tag-manager-list" id="tag-manager-list"></div>
+    <div class="add-tag-row">
+      <input type="text" id="tag-new-name" placeholder="Nueva etiqueta..." maxlength="24">
+      <button class="btn btn-primary" type="button" onclick="addTagFromManager()">Agregar</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeTagManager()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- estado y persistencia (sincronizado con tu cuenta) ---------------- */
+const STATUS_LABELS = { pendiente:'Por hacer', progreso:'En progreso', bloqueado:'Bloqueado', hecho:'Hecho' };
+const STATUS_ORDER = ['pendiente','progreso','bloqueado','hecho'];
+const DEFAULT_TAGS = ['Post completo','Weekly recap','Stories'];
+
+let state = { trabajo: [], personal: [], links: [], tags: [...DEFAULT_TAGS] };
+
+async function loadAll(){
+  try{
+    const res = await fetch('/api/state');
+    const data = await res.json();
+    if(data){
+      state.trabajo = data.trabajo || [];
+      state.personal = data.personal || [];
+      state.links = data.links || [];
+      state.tags = data.tags || [...DEFAULT_TAGS];
+    }
+  }catch(e){
+    console.error('No se pudo cargar', e);
+  }
+}
+
+let saveTimer = null;
+function persist(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await fetch('/api/state', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(state)
+      });
+    }catch(e){
+      console.error('No se pudo guardar', e);
+    }
+  }, 250);
+}
+
+function saveTasks(board){ persist(); }
+function saveLinks(){ persist(); }
+function saveTags(){ persist(); }
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ---------------- tabs ---------------- */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.panel).classList.add('active');
+  });
+});
+
+/* ---------------- render tareas ---------------- */
+function renderBoard(board){
+  const container = document.getElementById('board-'+board);
+  container.innerHTML = '';
+  STATUS_ORDER.forEach(status=>{
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.status = status;
+    col.dataset.board = board;
+
+    const label = document.createElement('div');
+    label.className = 'col-label';
+    label.innerHTML = `<span class="dot ${status}"></span>${STATUS_LABELS[status]}`;
+    col.appendChild(label);
+
+    const items = state[board].filter(t=>t.status===status);
+    if(items.length===0){
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Sin tareas aquí todavía.';
+      col.appendChild(empty);
+    }
+
+    items.forEach(task=>{
+      col.appendChild(buildCard(board, task));
+    });
+
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('dragover'); });
+    col.addEventListener('dragleave', ()=> col.classList.remove('dragover'));
+    col.addEventListener('drop', e=>{
+      e.preventDefault();
+      col.classList.remove('dragover');
+      const id = e.dataTransfer.getData('text/plain');
+      const task = state[board].find(t=>t.id===id);
+      if(task){ task.status = status; saveTasks(board); renderBoard(board); }
+    });
+
+    container.appendChild(col);
+  });
+}
+
+function buildCard(board, task){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.draggable = true;
+  card.dataset.status = task.status;
+  card.dataset.id = task.id;
+
+  card.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', task.id);
+    card.classList.add('dragging');
+  });
+  card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+
+  const title = document.createElement('p');
+  title.className = 'card-title';
+  title.textContent = task.title;
+  card.appendChild(title);
+
+  if(task.note){
+    const note = document.createElement('p');
+    note.className = 'card-note';
+    note.textContent = task.note;
+    card.appendChild(note);
+  }
+
+  const foot = document.createElement('div');
+  foot.className = 'card-foot';
+
+  const due = document.createElement('span');
+  due.className = 'card-due';
+  due.textContent = task.due ? ('Vence ' + formatDate(task.due)) : '';
+  foot.appendChild(due);
+
+  const controls = document.createElement('div');
+  controls.style.display='flex';
+  controls.style.gap='4px';
+  controls.style.alignItems='center';
+
+  const select = document.createElement('select');
+  select.className = 'mini-select';
+  STATUS_ORDER.forEach(s=>{
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = STATUS_LABELS[s];
+    if(s===task.status) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.addEventListener('change', ()=>{
+    task.status = select.value;
+    saveTasks(board);
+    renderBoard(board);
+  });
+  controls.appendChild(select);
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'icon-btn';
+  editBtn.title = 'Editar';
+  editBtn.textContent = '✎';
+  editBtn.addEventListener('click', ()=> openTaskModal(board, task.id));
+  controls.appendChild(editBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'icon-btn';
+  delBtn.title = 'Eliminar';
+  delBtn.textContent = '✕';
+  delBtn.addEventListener('click', ()=>{
+    state[board] = state[board].filter(t=>t.id!==task.id);
+    saveTasks(board);
+    renderBoard(board);
+  });
+  controls.appendChild(delBtn);
+
+  foot.appendChild(controls);
+  card.appendChild(foot);
+  return card;
+}
+
+function formatDate(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
+}
+
+/* ---------------- modal tarea ---------------- */
+let editingBoard = null;
+let editingId = null;
+
+function openTaskModal(board, id=null){
+  editingBoard = board;
+  editingId = id;
+  const modal = document.getElementById('task-modal');
+  const title = document.getElementById('task-modal-title');
+  const fTitle = document.getElementById('task-title');
+  const fNote = document.getElementById('task-note');
+  const fDue = document.getElementById('task-due');
+  const fStatus = document.getElementById('task-status');
+
+  if(id){
+    const task = state[board].find(t=>t.id===id);
+    title.textContent = 'Editar tarea';
+    fTitle.value = task.title;
+    fNote.value = task.note || '';
+    fDue.value = task.due || '';
+    fStatus.value = task.status;
+  } else {
+    title.textContent = 'Nueva tarea';
+    fTitle.value = ''; fNote.value=''; fDue.value=''; fStatus.value='pendiente';
+  }
+  modal.classList.add('open');
+  fTitle.focus();
+}
+function closeTaskModal(){
+  document.getElementById('task-modal').classList.remove('open');
+  editingBoard = null; editingId = null;
+}
+document.getElementById('task-modal').addEventListener('click', e=>{
+  if(e.target.id==='task-modal') closeTaskModal();
+});
+document.getElementById('task-form').addEventListener('submit', e=>{
+  e.preventDefault();
+  const title = document.getElementById('task-title').value.trim();
+  const note = document.getElementById('task-note').value.trim();
+  const due = document.getElementById('task-due').value;
+  const status = document.getElementById('task-status').value;
+  if(!title) return;
+
+  if(editingId){
+    const task = state[editingBoard].find(t=>t.id===editingId);
+    task.title=title; task.note=note; task.due=due; task.status=status;
+  } else {
+    state[editingBoard].push({ id: uid(), title, note, due, status });
+  }
+  saveTasks(editingBoard);
+  renderBoard(editingBoard);
+  closeTaskModal();
+});
+
+/* ---------------- links ---------------- */
+let selectedTags = [];
+let activeFilters = [];
+
+function renderTagPicker(){
+  const picker = document.getElementById('link-tagpicker');
+  picker.innerHTML = '';
+  state.tags.forEach(tag=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (selectedTags.includes(tag) ? ' selected' : '');
+    chip.textContent = tag;
+    chip.addEventListener('click', ()=>{
+      if(selectedTags.includes(tag)) selectedTags = selectedTags.filter(t=>t!==tag);
+      else selectedTags.push(tag);
+      renderTagPicker();
+    });
+    picker.appendChild(chip);
+  });
+}
+
+document.getElementById('link-form').addEventListener('submit', e=>{
+  e.preventDefault();
+  const urlInput = document.getElementById('link-url');
+  const titleInput = document.getElementById('link-title');
+  let url = urlInput.value.trim();
+  if(!url) return;
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  let hostname = '';
+  try{ hostname = new URL(url).hostname; } catch(err){ hostname = url; }
+
+  const title = titleInput.value.trim() || hostname;
+
+  state.links.unshift({ id: uid(), url, title, hostname, tags: [...selectedTags] });
+  saveLinks();
+
+  urlInput.value=''; titleInput.value=''; selectedTags=[];
+  renderTagPicker();
+  renderFilterBar();
+  renderLinks();
+});
+
+function renderFilterBar(){
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = '';
+  if(state.links.length===0) return;
+
+  const allChip = document.createElement('span');
+  allChip.className = 'chip filter' + (activeFilters.length===0 ? ' active' : '');
+  allChip.textContent = 'Todos';
+  allChip.addEventListener('click', ()=>{ activeFilters=[]; renderFilterBar(); renderLinks(); });
+  bar.appendChild(allChip);
+
+  state.tags.forEach(tag=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip filter' + (activeFilters.includes(tag) ? ' active' : '');
+    chip.textContent = tag;
+    chip.addEventListener('click', ()=>{
+      if(activeFilters.includes(tag)) activeFilters = activeFilters.filter(t=>t!==tag);
+      else activeFilters.push(tag);
+      renderFilterBar();
+      renderLinks();
+    });
+    bar.appendChild(chip);
+  });
+}
+
+function renderLinks(){
+  const grid = document.getElementById('links-grid');
+  grid.innerHTML = '';
+  const list = activeFilters.length===0
+    ? state.links
+    : state.links.filter(l=> l.tags.some(t=>activeFilters.includes(t)));
+
+  if(list.length===0){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Todavía no hay links guardados con este filtro.';
+    grid.appendChild(empty);
+    return;
+  }
+
+  list.forEach(link=>{
+    const card = document.createElement('div');
+    card.className = 'link-card';
+
+    const del = document.createElement('button');
+    del.className = 'icon-btn link-del';
+    del.textContent = '✕';
+    del.title = 'Eliminar';
+    del.addEventListener('click', ()=>{
+      state.links = state.links.filter(l=>l.id!==link.id);
+      saveLinks();
+      renderFilterBar();
+      renderLinks();
+    });
+    card.appendChild(del);
+
+    const a = document.createElement('a');
+    a.href = link.url; a.target = '_blank'; a.rel='noopener noreferrer';
+    const fav = document.createElement('img');
+    fav.className='favicon';
+    fav.src = 'https://www.google.com/s2/favicons?domain=' + link.hostname + '&sz=32';
+    fav.alt='';
+    a.appendChild(fav);
+    a.appendChild(document.createTextNode(link.title));
+    card.appendChild(a);
+
+    const urlLine = document.createElement('div');
+    urlLine.className = 'link-url';
+    urlLine.textContent = link.hostname;
+    card.appendChild(urlLine);
+
+    if(link.tags.length){
+      const tagsWrap = document.createElement('div');
+      tagsWrap.className = 'link-tags';
+      link.tags.forEach(t=>{
+        const c = document.createElement('span');
+        c.className = 'chip';
+        c.textContent = t;
+        tagsWrap.appendChild(c);
+      });
+      card.appendChild(tagsWrap);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+/* ---------------- editor de etiquetas ---------------- */
+function openTagManager(){
+  renderTagManagerList();
+  document.getElementById('tag-modal').classList.add('open');
+}
+function closeTagManager(){
+  document.getElementById('tag-modal').classList.remove('open');
+  // refrescar todo por si hubo cambios
+  renderTagPicker();
+  renderFilterBar();
+  renderLinks();
+}
+document.getElementById('tag-modal').addEventListener('click', e=>{
+  if(e.target.id==='tag-modal') closeTagManager();
+});
+
+function renderTagManagerList(){
+  const list = document.getElementById('tag-manager-list');
+  list.innerHTML = '';
+  state.tags.forEach((tag, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'tag-row';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = tag;
+    input.addEventListener('change', ()=>{
+      const newName = input.value.trim();
+      if(!newName){ input.value = tag; return; }
+      if(newName !== tag){
+        renameTag(tag, newName);
+        state.tags[idx] = newName;
+        saveTags();
+      }
+    });
+    row.appendChild(input);
+
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.title = 'Eliminar etiqueta';
+    del.addEventListener('click', ()=>{
+      deleteTag(tag);
+      renderTagManagerList();
+    });
+    row.appendChild(del);
+
+    list.appendChild(row);
+  });
+}
+
+function renameTag(oldName, newName){
+  state.links.forEach(l=>{
+    l.tags = l.tags.map(t => t === oldName ? newName : t);
+  });
+  saveLinks();
+}
+function deleteTag(name){
+  state.tags = state.tags.filter(t=>t!==name);
+  saveTags();
+  state.links.forEach(l=>{
+    l.tags = l.tags.filter(t=>t!==name);
+  });
+  saveLinks();
+  selectedTags = selectedTags.filter(t=>t!==name);
+  activeFilters = activeFilters.filter(t=>t!==name);
+}
+function addTagFromManager(){
+  const input = document.getElementById('tag-new-name');
+  const val = input.value.trim();
+  if(!val) return;
+  if(state.tags.some(t=>t.toLowerCase()===val.toLowerCase())){ input.value=''; return; }
+  state.tags.push(val);
+  saveTags();
+  input.value = '';
+  renderTagManagerList();
+}
+
+/* ---------------- init ---------------- */
+function showLoading(){
+  ['board-trabajo','board-personal'].forEach(id=>{
+    document.getElementById(id).innerHTML = '<div class="empty" style="grid-column:1/-1;">Cargando tus pendientes...</div>';
+  });
+  document.getElementById('links-grid').innerHTML = '<div class="empty">Cargando tus links...</div>';
+}
+(async function init(){
+  showLoading();
+  await loadAll();
+  renderBoard('trabajo');
+  renderBoard('personal');
+  renderTagPicker();
+  renderFilterBar();
+  renderLinks();
+})();
+</script>
+
+</body>
+</html>
